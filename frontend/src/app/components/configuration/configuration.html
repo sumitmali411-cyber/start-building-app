@@ -1,0 +1,43 @@
+<div class="flow-header animate-in">
+    <h1 class="flow-title">Configure Your Products</h1>
+    <p class="flow-subtitle">Customize your selections — choose your preferred options for each product</p>
+</div>
+
+@if (configApi.loading()) {
+<div class="loader">
+    <div class="spinner"></div> Loading configuration options...
+</div>
+} @else if (configApi.requirements().length === 0) {
+<div class="empty-state animate-in">
+    <div class="empty-state-icon">⚙️</div>
+    <p>No configuration needed for this package. You're all set!</p>
+</div>
+} @else {
+<div class="config-section">
+    @for (req of configApi.requirements(); track req.id; let i = $index) {
+    <div class="config-card animate-in" [style.animation-delay]="(i * 0.08) + 's'">
+        <label class="config-label">
+            {{ req.label }}
+            @if (!req.required) {
+            <span class="config-sublabel"> (Optional)</span>
+            }
+        </label>
+
+        @if (req.type === 'SELECT' && req.options) {
+        <select class="config-select" [value]="getConfigValue(req.name) || req.defaultValue"
+            (change)="onValueChange(req.name, req.label, $event)">
+            @for (opt of getOptions(req.options); track opt) {
+            <option [value]="opt">{{ opt }}</option>
+            }
+        </select>
+        } @else if (req.type === 'NUMBER') {
+        <input type="number" class="config-input" [value]="getConfigValue(req.name) || req.defaultValue"
+            (input)="onInputChange(req.name, req.label, $event)" placeholder="Enter a number">
+        } @else {
+        <input type="text" class="config-input" [value]="getConfigValue(req.name) || req.defaultValue"
+            (input)="onInputChange(req.name, req.label, $event)" [placeholder]="req.required ? 'Required' : 'Optional'">
+        }
+    </div>
+    }
+</div>
+}

@@ -1,0 +1,42 @@
+<div class="flow-header animate-in">
+    <h1 class="flow-title">Recommended Packages</h1>
+    <p class="flow-subtitle">We've found the best bundles based on your selection — save more with a package deal</p>
+</div>
+
+@if (matchApi.loading()) {
+<div class="loader">
+    <div class="spinner"></div> Finding matching packages...
+</div>
+} @else if (matchApi.packages().length === 0) {
+<div class="empty-state">
+    <div class="empty-state-icon">📦</div>
+    <p>No matching packages found. Try selecting different products.</p>
+    <button class="btn btn-secondary mt-2" (click)="goBack()">← Back to Products</button>
+</div>
+} @else {
+<div class="product-grid">
+    @for (pkg of matchApi.packages(); track pkg.id; let i = $index) {
+    <div class="product-card animate-in" [class.selected]="state.selectedPackage()?.id === pkg.id"
+        [style.animation-delay]="(i * 0.1) + 's'" (click)="selectPackage(pkg)">
+        <img [src]="pkg.imageUrl" [alt]="pkg.name" class="card-image" loading="lazy">
+        <div class="card-body">
+            <div class="card-category">Bundle</div>
+            <h3 class="card-title">{{ pkg.name }}</h3>
+            <p class="card-desc">{{ pkg.description }}</p>
+            <div>
+                <span class="card-price">${{ pkg.price.toFixed(2) }}</span>
+                @if (pkg.discount > 0) {
+                <span class="discount-badge">{{ pkg.discount }}% OFF</span>
+                }
+            </div>
+            <div class="package-includes">
+                <div class="package-includes-title">Includes</div>
+                @for (product of pkg.products; track product.id) {
+                <div class="package-product">{{ product.name }}</div>
+                }
+            </div>
+        </div>
+    </div>
+    }
+</div>
+}

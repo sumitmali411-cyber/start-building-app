@@ -1,0 +1,136 @@
+<div class="flow-header animate-in">
+    <h1 class="flow-title">Review & Checkout</h1>
+    <p class="flow-subtitle">Review your order details and select a payment method</p>
+</div>
+
+<div class="checkout-layout">
+    <!-- LEFT COLUMN -->
+    <div class="checkout-left animate-in animate-delay-1">
+
+        <!-- ORDER ITEMS -->
+        <div class="checkout-items mb-4">
+            <h3 style="font-weight: 700; margin-bottom: 1rem;">Order Items</h3>
+            @for (item of cartApi.items(); track item.id) {
+            <div class="checkout-item">
+                <div class="checkout-item-info">
+                    <div class="checkout-item-name">{{ item.productName }}</div>
+                    @if (item.characteristicValues) {
+                    <div class="checkout-item-config">
+                        {{ formatConfig(item.characteristicValues) }}
+                    </div>
+                    }
+                </div>
+                <div class="checkout-item-price">${{ (item.price * item.quantity).toFixed(2) }}</div>
+            </div>
+            } @empty {
+            <div class="empty-state">
+                <p>Your cart is empty</p>
+            </div>
+            }
+        </div>
+
+        <!-- BILLING DETAILS FORM -->
+        <div class="checkout-items mb-4">
+            <h3 style="font-weight: 700; margin-bottom: 1rem;">Billing Details</h3>
+            <form [formGroup]="billingForm" class="billing-form">
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted" style="font-size: 0.9rem;">Full Name</label>
+                    <input type="text" class="form-control" formControlName="fullName" placeholder="John Doe"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 0.75rem; border-radius: 8px; width: 100%;">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted" style="font-size: 0.9rem;">Email Address</label>
+                    <input type="email" class="form-control" formControlName="email" placeholder="john@example.com"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 0.75rem; border-radius: 8px; width: 100%;">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label text-muted" style="font-size: 0.9rem;">Phone Number</label>
+                    <input type="tel" class="form-control" formControlName="phone" placeholder="1234567890"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 0.75rem; border-radius: 8px; width: 100%;">
+                </div>
+            </form>
+        </div>
+
+        <!-- PAYMENT METHOD -->
+        <div class="checkout-items">
+            <h3 style="font-weight: 700; margin-bottom: 1rem;">Payment Method</h3>
+
+            <div class="payment-options">
+                <div class="payment-card" [class.selected]="selectedMethod() === 'razorpay'"
+                    (click)="selectMethod('razorpay')">
+                    <div class="payment-radio">
+                        <div class="radio-inner" *ngIf="selectedMethod() === 'razorpay'"></div>
+                    </div>
+                    <div class="payment-info">
+                        <span class="payment-name">Razorpay (Test)</span>
+                        <span class="payment-desc">Wallet, Cards, NetBanking</span>
+                    </div>
+                </div>
+
+                <div class="payment-card" [class.selected]="selectedMethod() === 'adumo'"
+                    (click)="selectMethod('adumo')">
+                    <div class="payment-radio">
+                        <div class="radio-inner" *ngIf="selectedMethod() === 'adumo'"></div>
+                    </div>
+                    <div class="payment-info">
+                        <span class="payment-name">Adumo Online (Test)</span>
+                        <span class="payment-desc">Secure Hosted Payment</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- END LEFT COLUMN -->
+
+    <!-- RIGHT COLUMN (SUMMARY) -->
+    <div class="checkout-summary animate-in animate-delay-2">
+        <div class="summary-title">Order Summary</div>
+
+        @if (state.selectedPackage(); as pkg) {
+        <div class="summary-row">
+            <span>Package</span>
+            <span>{{ pkg.name }}</span>
+        </div>
+        @if (pkg.discount > 0) {
+        <div class="summary-row" style="color: var(--success);">
+            <span>Discount</span>
+            <span>-{{ pkg.discount }}%</span>
+        </div>
+        }
+        }
+
+        <div class="summary-row">
+            <span>Items</span>
+            <span>{{ cartApi.itemCount() }}</span>
+        </div>
+
+        <div class="summary-total">
+            <span>Total</span>
+            <span class="summary-total-price">${{ cartApi.totalAmount().toFixed(2) }}</span>
+        </div>
+
+        <button class="btn btn-primary btn-block mt-4"
+            [disabled]="cartApi.itemCount() === 0 || paymentApi.loading() || orderApi.loading() || billingForm.invalid"
+            (click)="processPayment()">
+            @if (paymentApi.loading() || orderApi.loading()) {
+            <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Processing...
+            } @else {
+            Pay ${{ cartApi.totalAmount().toFixed(2) }} →
+            }
+        </button>
+    </div>
+</div>
+
+<!-- ADUMO SIMULATED MODAL -->
+@if (showAdumoModal()) {
+<div class="modal-backdrop">
+    <div class="modal-content animate-in">
+        <h2>{{ selectedMethod() === 'adumo' ? 'Adumo Secure Checkout' : 'Test Payment Simulation' }}</h2>
+        <p class="text-muted mb-4">Simulating hosted payment redirect for testing...</p>
+        <div class="adumo-loading">
+            <div class="spinner mb-3" style="width: 40px; height: 40px;"></div>
+            Wait while we process your test payment...
+        </div>
+    </div>
+</div>
+}

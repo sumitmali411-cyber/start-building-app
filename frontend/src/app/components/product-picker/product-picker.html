@@ -1,0 +1,25 @@
+<div class="flow-header animate-in">
+  <h1 class="flow-title">Choose Your Products</h1>
+  <p class="flow-subtitle">Select the products you're interested in, then we'll find the best package for you</p>
+</div>
+
+@if (productApi.loading()) {
+  <div class="loader"><div class="spinner"></div> Loading products...</div>
+} @else {
+  <div class="product-grid">
+    @for (product of productApi.products(); track product.id; let i = $index) {
+      <div class="product-card animate-in"
+           [class.selected]="state.isProductSelected(product.id)"
+           [style.animation-delay]="(i * 0.08) + 's'"
+           (click)="selectProduct(product)">
+        <img [src]="product.imageUrl" [alt]="product.name" class="card-image" loading="lazy">
+        <div class="card-body">
+          <div class="card-category">{{ product.category }}</div>
+          <h3 class="card-title">{{ product.name }}</h3>
+          <p class="card-desc">{{ product.description }}</p>
+          <span class="card-price">${{ product.price.toFixed(2) }}</span>
+        </div>
+      </div>
+    }
+  </div>
+}
