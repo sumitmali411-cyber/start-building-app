@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { OrderApiService, SalesFlowStateService } from '../../services/ecommerce.service';
+import { OrderApiService, SalesFlowStateService, CartApiService } from '../../services/ecommerce.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -50,6 +50,7 @@ import { Router } from '@angular/router';
 export class OrderConfirmationComponent implements OnInit {
     orderApi = inject(OrderApiService);
     state = inject(SalesFlowStateService);
+    private cartApi = inject(CartApiService);
     private router = inject(Router);
 
     ngOnInit() {
@@ -66,6 +67,8 @@ export class OrderConfirmationComponent implements OnInit {
     }
 
     startNewOrder() {
+        const sessionId = this.state.sessionId();
+        this.cartApi.clearCart(sessionId).subscribe();
         this.state.reset();
         this.router.navigate(['/pick']);
     }

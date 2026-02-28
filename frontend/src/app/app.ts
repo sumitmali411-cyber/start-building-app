@@ -233,6 +233,8 @@ export class AppComponent {
   }
 
   goHome() {
+    const sessionId = this.state.sessionId();
+    this.cartApi.clearCart(sessionId).subscribe();
     this.state.reset();
     this.router.navigate(['/pick']);
   }

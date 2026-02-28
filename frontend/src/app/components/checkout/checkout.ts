@@ -1,9 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CartApiService, SalesFlowStateService, OrderApiService, PaymentApiService } from '../../services/ecommerce.service';
 import { PaymentMethod } from '../../models/ecommerce.model';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 declare var Razorpay: any;
 
@@ -20,7 +21,7 @@ declare var Razorpay: any;
     <div class="checkout-layout">
       <!-- LEFT COLUMN -->
       <div class="checkout-left animate-in animate-delay-1">
-        
+
         <!-- ORDER ITEMS -->
         <div class="checkout-items mb-4">
           <h3 style="font-weight: 700; margin-bottom: 1rem;">Order Items</h3>
@@ -42,7 +43,7 @@ declare var Razorpay: any;
             </div>
           }
         </div>
-        
+
         <!-- BILLING DETAILS FORM -->
         <div class="checkout-items mb-4">
           <h3 style="font-weight: 700; margin-bottom: 1rem;">Billing Details</h3>
@@ -64,13 +65,13 @@ declare var Razorpay: any;
             </div>
           </form>
         </div>
-        
+
         <!-- PAYMENT METHOD -->
         <div class="checkout-items">
           <h3 style="font-weight: 700; margin-bottom: 1rem;">Payment Method</h3>
-          
+
           <div class="payment-options">
-            <div class="payment-card" 
+            <div class="payment-card"
                  [class.selected]="selectedMethod() === 'razorpay'"
                  (click)="selectMethod('razorpay')">
               <div class="payment-radio">
@@ -81,8 +82,8 @@ declare var Razorpay: any;
                 <span class="payment-desc">Wallet, Cards, NetBanking</span>
               </div>
             </div>
-            
-            <div class="payment-card" 
+
+            <div class="payment-card"
                  [class.selected]="selectedMethod() === 'adumo'"
                  (click)="selectMethod('adumo')">
               <div class="payment-radio">
@@ -125,7 +126,7 @@ declare var Razorpay: any;
           <span class="summary-total-price">\${{ cartApi.totalAmount().toFixed(2) }}</span>
         </div>
 
-        <button class="btn btn-primary btn-block mt-4" 
+        <button class="btn btn-primary btn-block mt-4"
                 [disabled]="cartApi.itemCount() === 0 || paymentApi.loading() || orderApi.loading() || billingForm.invalid"
                 (click)="processPayment()">
           @if (paymentApi.loading() || orderApi.loading()) {
@@ -136,17 +137,15 @@ declare var Razorpay: any;
         </button>
       </div>
     </div>
-    
-    <!-- ADUMO SIMULATED MODAL -->
-    @if (showAdumoModal()) {
-      <div class="modal-backdrop">
-        <div class="modal-content animate-in">
-          <h2>{{ selectedMethod() === 'adumo' ? 'Adumo Secure Checkout' : 'Test Payment Simulation' }}</h2>
-          <p class="text-muted mb-4">Simulating hosted payment redirect for testing...</p>
-          <div class="adumo-loading">
-            <div class="spinner mb-3" style="width: 40px; height: 40px;"></div>
-            Wait while we process your test payment...
-          </div>
+
+    <!-- RAZORPAY IFRAME MODAL -->
+    @if (showRazorpayIframe()) {
+      <div class="modal-backdrop" style="display:flex; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:12px; overflow:hidden; width:480px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+          <iframe [src]="razorpayIframeSrc()"
+                  style="width:100%; height:520px; border:none; display:block;"
+                  title="Razorpay Payment">
+          </iframe>
         </div>
       </div>
     }
@@ -158,19 +157,20 @@ export class CheckoutComponent implements OnInit {
   orderApi = inject(OrderApiService);
   paymentApi = inject(PaymentApiService);
   private router = inject(Router);
+  private sanitizer = inject(DomSanitizer);
 
   selectedMethod = signal<PaymentMethod>('razorpay');
-  showAdumoModal = signal<boolean>(false);
+  showRazorpayIframe = signal<boolean>(false);
+  razorpayIframeSrc = signal<SafeResourceUrl | null>(null);
 
   billingForm: FormGroup;
 
   constructor() {
     const fb = inject(FormBuilder);
     this.billingForm = fb.group({
-      fullName: ['Test Setup User', [Validators.required, Validators.minLength(2)]],
-      email: ['test@example.com', [Validators.required, Validators.email]],
-      phone: ['9999999999', [Validators.required, Validators.pattern('^[0-9]{10,15}$')]],
-      address: ['123 Test Street, Developer City', [Validators.required]]
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      email: ['', [Validators.required, Validators.email]],
+      phone: ['', [Validators.required, Validators.pattern('^[0-9]{10,15}$')]]
     });
   }
 
@@ -178,6 +178,16 @@ export class CheckoutComponent implements OnInit {
     this.state.setStep('checkout');
     this.cartApi.loadCart(this.state.sessionId());
     this.loadRazorpayScript();
+  }
+
+  @HostListener('window:message', ['$event'])
+  onMessage(event: MessageEvent) {
+    if (event.data?.type === 'rzp-payment-success') {
+      this.showRazorpayIframe.set(false);
+      this.finalizeOrder(event.data.paymentId);
+    } else if (event.data?.type === 'rzp-payment-cancel') {
+      this.showRazorpayIframe.set(false);
+    }
   }
 
   formatConfig(configJson: string): string {
@@ -229,7 +239,6 @@ export class CheckoutComponent implements OnInit {
       name: 'ShopFlow Premium',
       description: 'Transaction ID: ' + orderData.orderId,
       handler: (response: any) => {
-        // Payment successful
         this.finalizeOrder(response.razorpay_payment_id);
       },
       prefill: {
@@ -255,21 +264,18 @@ export class CheckoutComponent implements OnInit {
   }
 
   private simulateRazorpay(orderData: any) {
-    console.log('Simulating Razorpay Payment (Demo Mode)...');
-    this.showAdumoModal.set(true); // Reuse the simulation modal
-
-    setTimeout(() => {
-      this.showAdumoModal.set(false);
-      this.finalizeOrder('pay_simulated_' + Math.random().toString(36).substring(7));
-    }, 2500);
+    const amount = this.cartApi.totalAmount();
+    const orderId = orderData.orderId;
+    const src = `razorpay-mock.html?amount=${amount.toFixed(2)}&orderId=${encodeURIComponent(orderId)}`;
+    this.razorpayIframeSrc.set(this.sanitizer.bypassSecurityTrustResourceUrl(src));
+    this.showRazorpayIframe.set(true);
   }
 
   private simulateAdumo(orderData: any) {
-    // Adumo redirects to an external hosted page
-    if (orderData.mockRedirectUrl) {
-      window.location.href = orderData.mockRedirectUrl;
+    if (orderData.hopUrl) {
+      window.location.href = orderData.hopUrl;
     } else {
-      alert("Redirect URL missing!");
+      alert('Redirect URL missing!');
     }
   }
 

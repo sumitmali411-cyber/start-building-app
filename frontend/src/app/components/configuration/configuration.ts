@@ -1,7 +1,7 @@
 import { Component, effect, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConfigApiService } from '../../services/config/config-api.service';
-import { SalesFlowStateService } from '../../services/flow/sales-flow-state.service';
+import { SalesFlowStateService } from '../../services/ecommerce.service';
 import { Router } from '@angular/router';
 
 @Component({

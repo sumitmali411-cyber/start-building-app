@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { ProductPackage } from '../../models/ecommerce.model';
 import { tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { SalesFlowStateService } from '../flow/sales-flow-state.service';
+import { SalesFlowStateService } from '../ecommerce.service';
 
 const API = 'http://localhost:8080/api';
 

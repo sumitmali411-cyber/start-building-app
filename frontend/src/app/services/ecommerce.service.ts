@@ -254,8 +254,7 @@ export interface PaymentInitResponse {
     amount?: number;
     currency?: string;
     keyId?: string;
-    mockRedirectUrl?: string;
-    simulatedSuccessDelay?: number;
+    hopUrl?: string;
     isMock?: boolean;
 }
 

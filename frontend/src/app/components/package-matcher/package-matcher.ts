@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ProductMatchApiService } from '../../services/product/product-match-api.service';
-import { SalesFlowStateService } from '../../services/flow/sales-flow-state.service';
+import { SalesFlowStateService } from '../../services/ecommerce.service';
 import { ProductPackage } from '../../models/ecommerce.model';
 import { Router } from '@angular/router';
 
