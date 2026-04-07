@@ -4,7 +4,7 @@ import { ProductCharacteristic } from '../../models/ecommerce.model';
 import { tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 
-const API = 'http://localhost:8080/api';
+const API = 'http://localhost:8082/api';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigApiService {

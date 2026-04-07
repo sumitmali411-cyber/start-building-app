@@ -3,8 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Product, ProductPackage, ProductCharacteristic, CartItem, CustomerOrder, ConfigValue, SalesFlowStep, FlowConfig, FlowSession, PREDEFINED_FLOWS } from '../models/ecommerce.model';
 import { tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-const API = 'http://localhost:8080/api';
+const API = environment.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class SalesFlowStateService {

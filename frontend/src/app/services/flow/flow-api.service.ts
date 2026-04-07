@@ -5,7 +5,7 @@ import { tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { SalesFlowStateService } from '../ecommerce.service';
 
-const API = 'http://localhost:8080/api';
+const API = 'http://localhost:8082/api';
 
 @Injectable({ providedIn: 'root' })
 export class FlowApiService {
