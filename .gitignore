@@ -101,3 +101,7 @@ docker-compose.override.yml
 # ------------------------------
 *.sqlite
 *.db
+# ------------------------------
+# Playwright MCP session artifacts (can contain session tokens)
+# ------------------------------
+.playwright-mcp/
