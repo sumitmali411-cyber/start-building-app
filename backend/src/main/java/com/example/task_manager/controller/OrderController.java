@@ -3,6 +3,7 @@ package com.example.task_manager.controller;
 import com.example.task_manager.model.CustomerOrder;
 import com.example.task_manager.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -21,7 +22,13 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public CustomerOrder getOrder(@PathVariable("id") Long id) {
-        return orderService.getOrder(id);
+    public ResponseEntity<CustomerOrder> getOrder(
+            @PathVariable("id") Long id,
+            @RequestParam("sessionId") String sessionId) {
+        try {
+            return ResponseEntity.ok(orderService.getOrder(id, sessionId));
+        } catch (OrderService.OrderNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
