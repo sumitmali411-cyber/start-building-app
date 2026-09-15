@@ -47,8 +47,27 @@ public class OrderService {
         return saved;
     }
 
-    public CustomerOrder getOrder(Long id) {
-        return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + id));
+    /**
+     * Looks up an order, but only for the session that placed it. Without the
+     * session check this is an IDOR: order ids are sequential, so anyone could
+     * walk /api/orders/1..n and read every customer's items and totals.
+     */
+    public CustomerOrder getOrder(Long id, String sessionId) {
+        CustomerOrder order = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found"));
+
+        if (sessionId == null || !sessionId.equals(order.getSessionId())) {
+            // Same error as a missing order, so this cannot be used to probe
+            // which order ids exist.
+            throw new OrderNotFoundException("Order not found");
+        }
+
+        return order;
+    }
+
+    public static class OrderNotFoundException extends RuntimeException {
+        public OrderNotFoundException(String message) {
+            super(message);
+        }
     }
 }

@@ -25,6 +25,9 @@ public class PaymentController {
     @Value("${payment.razorpay.key_secret:secret_placeholder}")
     private String razorpayKeySecret;
 
+    @Value("${app.frontend-origin:http://localhost:4200}")
+    private String frontendOrigin;
+
     // In-memory store: transactionId -> callbackUrl
     private final Map<String, String> adumoCallbacks = new ConcurrentHashMap<>();
 
@@ -99,7 +102,18 @@ public class PaymentController {
             @PathVariable String transactionId,
             @RequestParam String callbackUrl) {
 
+        // transactionId is attacker-controlled path input and callbackUrl is an
+        // attacker-controlled query parameter; both are reflected into this page.
+        if (!isAllowedCallback(callbackUrl)) {
+            return ResponseEntity.badRequest()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body("<!DOCTYPE html><html><body><h1>Invalid callback URL</h1></body></html>");
+        }
+
         adumoCallbacks.put(transactionId, callbackUrl);
+
+        String safeTransactionId = escapeHtml(transactionId);
+        String safeCallbackUrl = escapeHtml(callbackUrl);
 
         String html = "<!DOCTYPE html>\n" +
             "<html lang=\"en\">\n" +
@@ -147,10 +161,10 @@ public class PaymentController {
             "    <div class=\"card\">\n" +
             "      <div class=\"card-header\">\n" +
             "        <h2>Secure Card Payment</h2>\n" +
-            "        <div class=\"tx-id\">Transaction: " + transactionId + "</div>\n" +
+            "        <div class=\"tx-id\">Transaction: " + safeTransactionId + "</div>\n" +
             "      </div>\n" +
             "      <div class=\"card-body\">\n" +
-            "        <form method=\"POST\" action=\"/api/payment/adumo/hop/" + transactionId + "/pay\" onsubmit=\"showSpinner()\">\n" +
+            "        <form method=\"POST\" action=\"/api/payment/adumo/hop/" + safeTransactionId + "/pay\" onsubmit=\"showSpinner()\">\n" +
             "          <input type=\"hidden\" name=\"callbackUrl\" value=\"" + escapeHtml(callbackUrl) + "\">\n" +
             "          <div class=\"form-group\">\n" +
             "            <label>Card Number</label>\n" +
@@ -172,8 +186,9 @@ public class PaymentController {
             "          </div>\n" +
             "          <button type=\"submit\" class=\"btn-pay\">PAY SECURELY →</button>\n" +
             "        </form>\n" +
-            "        <form method=\"GET\" action=\"" + escapeHtml(callbackUrl) + "\" style=\"margin:0;\" onsubmit=\"addCancelParam(this)\">\n" +
-            "          <button type=\"submit\" class=\"btn-cancel\" onclick=\"this.form.action='" + escapeHtml(callbackUrl) + "' + '&status=CANCELLED'\">Cancel Payment</button>\n" +
+            "        <form method=\"GET\" action=\"" + safeCallbackUrl + "\" style=\"margin:0;\">\n" +
+            "          <input type=\"hidden\" name=\"status\" value=\"CANCELLED\">\n" +
+            "          <button type=\"submit\" class=\"btn-cancel\">Cancel Payment</button>\n" +
             "        </form>\n" +
             "        <div class=\"secure\"><span>🔒</span> 256-bit TLS encrypted · PCI DSS compliant</div>\n" +
             "      </div>\n" +
@@ -201,7 +216,13 @@ public class PaymentController {
             @PathVariable String transactionId,
             @RequestParam(required = false) String callbackUrl) {
 
-        String callback = callbackUrl != null ? callbackUrl : adumoCallbacks.getOrDefault(transactionId, "http://localhost:4200/payment-callback");
+        String callback = callbackUrl != null ? callbackUrl : adumoCallbacks.get(transactionId);
+
+        // Never redirect to a caller-supplied destination: an unvalidated
+        // callbackUrl here is an open redirect usable for phishing.
+        if (!isAllowedCallback(callback)) {
+            callback = frontendOrigin + "/payment-callback";
+        }
 
         String separator = callback.contains("?") ? "&" : "?";
         String redirectUrl = callback + separator + "status=SUCCESS&transactionId=" + transactionId;
@@ -212,9 +233,34 @@ public class PaymentController {
     }
 
     private String escapeHtml(String text) {
+        if (text == null) return "";
         return text.replace("&", "&amp;")
                    .replace("<", "&lt;")
                    .replace(">", "&gt;")
-                   .replace("\"", "&quot;");
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#x27;");
+    }
+
+    /**
+     * A callback is acceptable only when it points at the configured frontend
+     * origin. Compares parsed scheme/host/port rather than using startsWith,
+     * which "http://localhost:4200.evil.com" would defeat.
+     */
+    private boolean isAllowedCallback(String candidate) {
+        if (candidate == null || candidate.isBlank()) return false;
+        try {
+            URI target = new URI(candidate);
+            URI allowed = new URI(frontendOrigin);
+            if (!target.isAbsolute()) return false;
+            return equalsIgnoreCaseNullable(target.getScheme(), allowed.getScheme())
+                    && equalsIgnoreCaseNullable(target.getHost(), allowed.getHost())
+                    && target.getPort() == allowed.getPort();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean equalsIgnoreCaseNullable(String a, String b) {
+        return a != null && b != null && a.equalsIgnoreCase(b);
     }
 }

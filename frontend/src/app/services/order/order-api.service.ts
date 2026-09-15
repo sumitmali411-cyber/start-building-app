@@ -32,8 +32,11 @@ export class OrderApiService {
         );
     }
 
-    getOrder(id: number) {
-        return this.http.get<CustomerOrder>(`${API}/orders/${id}`).pipe(
+    getOrder(id: number, sessionId: string) {
+        // The API scopes order lookups to the owning session.
+        return this.http.get<CustomerOrder>(`${API}/orders/${id}`, {
+            params: { sessionId }
+        }).pipe(
             tap(order => this._currentOrder.set(order))
         );
     }

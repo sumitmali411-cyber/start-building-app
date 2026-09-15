@@ -1,7 +1,0 @@
-[   10052ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://claude.ai/api/referral:0
-[   10055ms] [ERROR] [REACT_QUERY_CLIENT] QueryClient error: Error: ["referral"] data is undefined
-    at Object.onSuccess (https://assets-proxy.anthropic.com/claude-ai/v1/_next/static/chunks/75212-6636178aa9da790c.js:1:32507)
-    at y (https://assets-proxy.anthropic.com/claude-ai/v1/_next/static/chunks/75212-6636178aa9da790c.js:1:4893) @ https://assets-proxy.anthropic.com/claude-ai/v1/_next/static/chunks/86864-f59eda9af7ff277e.js:13
-[   10991ms] [WARNING] [Intercom] The App ID in your code snippet has not been set. Set it to your App ID found in settings to complete installation: https://app.intercom.com/a/apps/_/settings/web @ https://js.intercomcdn.com/frame-modern.d124bc1c.js:0
-[   11424ms] [ERROR] Not signed in with the identity provider. @ https://claude.ai/login:0
-[   43806ms] [ERROR] [GSI_LOGGER]: FedCM get() rejects with NetworkError: Error retrieving a token. @ https://assets-proxy.anthropic.com/claude-ai/v1/_next/static/chunks/86864-f59eda9af7ff277e.js:13
